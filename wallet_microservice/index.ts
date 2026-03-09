@@ -6,6 +6,7 @@ import crypto from "crypto";
 import { generateWallet, generateSecretKey } from "@stacks/wallet-sdk";
 import { getAddressFromPrivateKey } from "@stacks/transactions";
 import { STACKS_TESTNET, STACKS_MAINNET } from "@stacks/network";
+import logger from "./middleware/logger";
 
 const app = express();
 
@@ -31,6 +32,8 @@ const createWallet = async () => {
 		address: address,
 	};
 };
+
+app.use(logger);
 
 app.get("/wallet/create", async (req: Request, res: Response) => {
 	const wallet = await createWallet();
