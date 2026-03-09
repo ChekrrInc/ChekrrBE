@@ -10,8 +10,13 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@stacks/network": "^7.3.1",
+    "@stacks/transactions": "^7.3.1",
     "@stacks/wallet-sdk": "^7.2.0",
+    "@types/express": "^5.0.6",
+    "chalk": "^5.6.2",
     "colors": "^1.4.0",
+    "crypto": "^1.0.1",
     "express": "^5.2.1"
   }
 }
