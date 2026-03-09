@@ -7,6 +7,7 @@ import { generateWallet, generateSecretKey } from "@stacks/wallet-sdk";
 import { getAddressFromPrivateKey } from "@stacks/transactions";
 import { STACKS_TESTNET, STACKS_MAINNET } from "@stacks/network";
 import logger from "./middleware/logger";
+import error from "./middleware/error";
 
 const app = express();
 
@@ -37,14 +38,18 @@ app.use(logger);
 
 app.get("/wallet/create", async (req: Request, res: Response) => {
 	const wallet = await createWallet();
-	console.log(wallet);
-
 	res.send(wallet);
 });
 
-app.post("/wallet/restore", async (req: Request, res: Response) => {
+app.post("/wallet/restore", async (req: Request, res: Response, next: any) => {
+	if (!req.body) {
+		const error = new Error("Err: Invalid body [Body Not Found]");
+		return next(error);
+	}
 	console.log(req.body);
 });
+
+app.use(error);
 
 app.listen(8000, () => {
 	console.log(chalk.green("SERVER STARTED http://localhost:8000"));
