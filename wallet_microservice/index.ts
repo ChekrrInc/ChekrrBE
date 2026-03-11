@@ -14,14 +14,18 @@ const app = express();
 
 const getUSDCxBalance = async (address: string) => {
 	const response = await fetch(
-		`https://api.testnet.hiro.so/v1/address/${address}/balances`,
+		`https://api.testnet.hiro.so/extended/v1/address/${address}/balances`,
 	);
-	const data = await response.json();
-	const USDCX_CONTRACT = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx";
+	const data: any = await response.json();
+	const USDCX_CONTRACT =
+		"ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx::usdcx-token";
+
+	const usdcxBal = (parseFloat(data.fungible_tokens[USDCX_CONTRACT].balance) /
+		1_000_000) as number;
 
 	return {
-		address,
-		usdcxBalance: data.fungible_tokens?.[USDCX_CONTRACT]?.balance ?? "0",
+		walletAddress: address,
+		walletBalance: usdcxBal,
 	};
 };
 
@@ -90,12 +94,32 @@ app.post("/wallet/restore", async (req: Request, res: Response, next: any) => {
 app.post("/wallet/status", async (req: Request, res: Response, next: any) => {
 	if (!req.body?.walletAddress) {
 		const error = new Error("Err: Target Wallet Address Not Found");
+		next(error);
+	}
+	const walletBalanceData = await getUSDCxBalance(req.body.walletAddress);
+	res.send(walletBalanceData);
+});
+
+app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
+	if (!req.body?.recvAddress) {
+		const error = new Error("Err: Recipient Wallet Address Not Found");
+		next(error);
 	}
 
-	const walletBalance = await getUSDCxBalance(req.body.walletAddress);
-	console.log(walletBalance);
+	if (!req.body?.usdcxAmount) {
+		const error = new Error("Err: USDCx amount not specified");
+		next(error);
+	}
 
-	res.send({ walletUSDCxBal: walletBalance });
+	if (!req.body.senderPrivateKey) {
+		const error = new Error("Err: Sender Private Key Not Found");
+		next(error);
+	}
+
+	if (!req.body.masterWalletPrivateKey) {
+		const error = new Error("Err: Sender Private Key Not Found");
+		next(error);
+	}
 });
 
 app.use(error);
