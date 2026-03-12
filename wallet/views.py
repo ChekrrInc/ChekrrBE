@@ -1,3 +1,35 @@
-from django.shortcuts import render
+import os
+import json
+from datetime import datetime
+from django.http import HttpResponse
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .utils import ChekrrBot,parse_whatsapp_dict,reply_whatsapp_message
 
-# Create your views here.
+import requests
+
+
+chekrrbot=ChekrrBot()
+
+class BotWalletView(APIView):
+
+    def get(self, request, *args, **kwargs):
+        mode      = request.query_params.get("hub.mode")
+        token     = request.query_params.get("hub.verify_token")
+        challenge = request.query_params.get("hub.challenge")
+
+        if mode == "subscribe" and token == settings.WHATSAPP_BUSINESS_ACCESS_TOKEN:
+            print("WEBHOOK VERIFIED")
+            return HttpResponse(challenge, content_type="text/plain", status=200)
+
+        return HttpResponse("Forbidden", status=403)
+
+    def post(self, request, *args, **kwargs):
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(f"\n\nWebhook received {timestamp}\n")
+        print(request.data)
+        res=parse_whatsapp_dict(request.data)
+        response=chekrrbot.reply(phone=res["phone"],message=res["message"])
+        print(f"DONE:{reply_whatsapp_message(to=res['phone'],msg=response)}")
+        return HttpResponse(status=200)

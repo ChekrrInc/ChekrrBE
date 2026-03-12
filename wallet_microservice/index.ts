@@ -52,7 +52,7 @@ const createWallet = async () => {
 	};
 };
 
-const getSponsorshipStxBalance = async () => {};
+const getSponsorshipStxBalance = async () => { };
 
 app.use(logger);
 app.use(express.json());
@@ -126,6 +126,6 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 
 app.use(error);
 
-app.listen(8000, () => {
-	console.log(chalk.green("SERVER STARTED http://localhost:8000"));
+app.listen(8080, () => {
+	console.log(chalk.green("SERVER STARTED http://localhost:8080"));
 });

@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +29,7 @@ SECRET_KEY = 'django-insecure-evxg#o7l#p@exaib*hwxniu^%4stddvuc&+50jth-(o_3^j+f-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 
 # Application definition
@@ -37,6 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'wallet'
 ]
 
 MIDDLEWARE = [
@@ -79,6 +85,9 @@ DATABASES = {
     }
 }
 
+WHATSAPP_BUSINESS_ACCESS_TOKEN=os.getenv("WHATSAPP_BUSINESS_ACCESS_TOKEN")
+FACEBOOK_GRAPH_API=os.getenv("FACEBOOK_GRAPH_API")
+GROQ_API_KEY=os.getenv("GROQ_API_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
