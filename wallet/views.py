@@ -27,9 +27,9 @@ class BotWalletView(APIView):
 
     def post(self, request, *args, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"\n\nWebhook received {timestamp}\n")
-        print(request.data)
         res=parse_whatsapp_dict(request.data)
+        if res is None:
+            return HttpResponse("Empty data packet",status=403)
         response=chekrrbot.reply(phone=res["phone"],message=res["message"])
         print(f"DONE:{reply_whatsapp_message(to=res['phone'],msg=response)}")
         return HttpResponse(status=200)
