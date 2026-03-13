@@ -117,11 +117,6 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 		const error = new Error("Err: Sender Private Key Not Found");
 		next(error);
 	}
-
-	if (!req.body.masterWalletPrivateKey) {
-		const error = new Error("Err: Sender Private Key Not Found");
-		next(error);
-	}
 });
 
 app.use(error);

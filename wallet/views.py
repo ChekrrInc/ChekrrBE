@@ -30,6 +30,7 @@ class BotWalletView(APIView):
         res=parse_whatsapp_dict(request.data)
         if res is None:
             return HttpResponse("Empty data packet",status=403)
-        response=chekrrbot.reply(phone=res["phone"],message=res["message"])
+        response=chekrrbot.reply(phone=res["phone"],message=res["message"],id=res["id"])
+        print(res)
         print(f"DONE:{reply_whatsapp_message(to=res['phone'],msg=response)}")
         return HttpResponse(status=200)

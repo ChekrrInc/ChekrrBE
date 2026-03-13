@@ -12,13 +12,27 @@ class ChekrrBot:
         self.onboarding_status={}
         self.onboarding_info={}
         self.sent_greeting_text=False
+        self.setupMasterWallet()
 
 
     def setupMasterWallet(self):
         print("Setting up master")
-        if wallet.objects.filter(title="Master Wallet").exists():
+        obj=Wallet.objects.filter(title="Master Wallet")
+        if obj.exists():
             print("Master wallet already created")
-            
+            print(f"MASTER WALLET ADDRESS:{obj[0].wallet_address}")
+            return
+
+        res_data=requests.get("http://localhost:8080/wallet/create")
+        obj=Wallet.objects.create(
+            title=f"Master Wallet",
+            password=res_data.json()["password"],
+            secret_key=res_data.json()["secretKey"],
+            wallet_address=res_data.json()["address"],
+        )
+
+        print(f"MASTER WALLET ADDRESS:f{obj.wallet_address}")
+        print("Master wallet setup successfully")
 
 
 
@@ -33,7 +47,24 @@ class ChekrrBot:
             return self.sessions[phone]
         return self.sessions[phone]
  
-    def reply(self, phone: str, message: str) -> str:
+    def reply(self, phone: str, message: str,id:str) -> str:
+        headers = {
+             "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
+             "Content-Type": "application/json"
+        }
+
+        payload = {
+             "messaging_product": "whatsapp",
+            "status": "read",
+            "message_id": f"{id}",
+            "typing_indicator": {
+                "type": "text"
+            }
+        }
+
+        response = requests.post(settings.FACEBOOK_GRAPH_API, headers=headers, json=payload)
+  
+
         history = self.get_history(phone)
 
         # add user message to history
@@ -52,6 +83,8 @@ class ChekrrBot:
                     "'wallet_address'- if asking about their wallet, stacks wallet, or STX address\n"
                     "'phone'         - if asking about their phone number or number ID\n"
                     "'all'           - if asking for all their details or full profile\n"
+                    "'all'           - if asking for profile"
+                    "'balance'       - if is asking about wallet balance or wallet holding or usdcx amount or usd amount"
                     "'false'         - if not asking about account details at all\n\n"
                     "Reply with the keyword ONLY — no other text.\n\n"
                    f"User message: {message}"
@@ -80,6 +113,15 @@ class ChekrrBot:
 
             if result in responses:
                  return responses[result]
+
+            if result == "balance":
+                res_data=requests.post("http://localhost:8080/wallet/status",json={ "walletAddress": obj.wallet_address })
+                print(res_data.json())
+                if "error" in res_data.json():
+                    return "Your wallet balance is 0 USDCx"
+                return f"Your wallet balance is {res_data.json()['walletBalance']} USDCx"
+              
+
             return "Logged in terminal" 
               
 
@@ -161,9 +203,10 @@ def parse_whatsapp_dict(payload: dict) -> dict:
         "phone":   contact["wa_id"],
         "message": message["text"]["body"],
         "type":    message["type"],
+        "id":      message["id"]
     }
 
-def reply_whatsapp_message(msg:str,to:str): 
+def reply_whatsapp_message(msg:str,to:str):
     headers = {
        "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
         "Content-Type": "application/json"
