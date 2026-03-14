@@ -2,6 +2,7 @@ from django.conf import settings
 from groq import Groq
 import requests
 import re
+import base64
 from .models import Wallet
 
 start_prompt = "You are an ai bot named Chekrr that help people turn their product description into a global payment link,keep response under 300 words"
@@ -21,6 +22,57 @@ def extract_transfer_details(text: str) -> dict:
         "address": address,
         "valid": amount is not None and address is not None
     }
+
+
+class WhatsappMultiMediaMessageHandler:
+    def __init__(self,whatsapp_message_packet):
+        self.whatsapp_message_packet=whatsapp_message_packet
+        
+    def parse(self):
+        value = self.whatsapp_message_packet["entry"][0]["changes"][0]["value"]
+        contact = value["contacts"][0]
+        message = value["messages"][0]
+
+
+        if message["type"] == "image":
+              image_id = message["image"]["id"]
+              caption = message["image"].get("caption", "")
+              image_url=self._get_media_url(image_id)
+              imageBytes=self._download_media(image_url)
+              return { 
+                "imageBase64Format":base64.b64encode(imageBytes).decode("utf-8"),
+                "message": caption, 
+                "name":    contact["profile"]["name"],
+                "phone":   contact["wa_id"],
+                "type":    message["type"],
+                "id":      message["id"]
+             }
+
+        if message["type"] == "text":
+            return {
+                "name":    contact["profile"]["name"],
+                "phone":   contact["wa_id"],
+                "message": message["text"]["body"],
+                "type":    message["type"],
+                "id":      message["id"]
+            }
+
+
+    def _get_media_url(self,media_id: str) -> str:
+        response = requests.get(
+              f"https://graph.facebook.com/v18.0/{media_id}",
+        headers={"Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}"}
+    )
+        return response.json()["url"]
+    
+    def _download_media(self,media_url: str) -> bytes:
+        response = requests.get(
+            media_url,
+            headers={"Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}"}
+    )
+        return response.content  # raw image bytes
+
+   
 
 class ChekrrBot:
     def __init__(self):
@@ -223,20 +275,8 @@ class ChekrrBot:
         return reply
 
 def parse_whatsapp_dict(payload: dict) -> dict:
-    value    = payload["entry"][0]["changes"][0]["value"]
-    if "contacts" not in value:
-        return None
+    return WhatsappMultiMediaMessageHandler(payload).parse()
 
-    contact  = value["contacts"][0]
-    message  = value["messages"][0]
-
-    return {
-        "name":    contact["profile"]["name"],
-        "phone":   contact["wa_id"],
-        "message": message["text"]["body"],
-        "type":    message["type"],
-        "id":      message["id"]
-    }
 
 def reply_whatsapp_message(msg:str,to:str):
     headers = {
@@ -258,6 +298,7 @@ def reply_whatsapp_message(msg:str,to:str):
 
 
 def handle_chat_reply(msg:str)->str:
+
     return 
 
 
