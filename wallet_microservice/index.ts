@@ -6,6 +6,17 @@ import crypto from "crypto";
 import { generateWallet, generateSecretKey } from "@stacks/wallet-sdk";
 import { getAddressFromPrivateKey } from "@stacks/transactions";
 import { STACKS_TESTNET, STACKS_MAINNET } from "@stacks/network";
+import {
+	makeContractCall,
+	AnchorMode,
+	PostConditionMode,
+	sponsorTransaction,
+	broadcastTransaction,
+	uintCV,
+	standardPrincipalCV,
+	noneCV,
+	Pc
+} from "@stacks/transactions";
 
 import logger from "./middleware/logger";
 import error from "./middleware/error";
@@ -49,10 +60,53 @@ const createWallet = async () => {
 		secretKey, // ← store encrypted
 		password, // ← store encrypted
 		address: address,
+		stxPrivateKey: account?.stxPrivateKey,
 	};
 };
 
-const getSponsorshipStxBalance = async () => { };
+const sendSponsoredTx = async (
+	usdcxAmount: number,
+	recvAddr: string,
+	senderAddress: string,
+	senderPrivateKey: string,
+	sponsorPrivateKey: string,
+) => {
+	const userTx = await makeContractCall({
+		contractAddress: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+		contractName: "usdcx",
+		functionName: "transfer",
+		functionArgs: [
+			uintCV(usdcxAmount * 1_000_000), // amount
+			standardPrincipalCV(senderAddress), // sender (from)
+			standardPrincipalCV(recvAddr), // recipient (to)
+			noneCV(), // memo
+		],
+		sponsored: true, // ← critical flag
+		fee: 0, // user pays nothing
+		senderKey: senderPrivateKey,
+		network: STACKS_TESTNET,
+		postConditionMode: PostConditionMode.Deny,
+		postConditions: [
+			Pc.principal(senderAddress)
+    .willSendEq(usdcxAmount * 1_000_000)
+    .ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
+		],
+	});
+
+	const sponsoredTx = await sponsorTransaction({
+		transaction: userTx,
+		sponsorPrivateKey: sponsorPrivateKey,
+		fee: 1000, // in microSTX — 1000 = 0.001 STX
+		network: STACKS_TESTNET,
+	});
+
+	const result = await broadcastTransaction({
+		transaction: sponsoredTx,
+		network: STACKS_TESTNET,
+	});
+
+	return result;
+};
 
 app.use(logger);
 app.use(express.json());
@@ -113,10 +167,32 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 		next(error);
 	}
 
+	if (!req.body.senderAddress) {
+		const error = new Error("Err: Sponsor Private Key Not Found");
+		next(error);
+	}
+
 	if (!req.body.senderPrivateKey) {
 		const error = new Error("Err: Sender Private Key Not Found");
 		next(error);
 	}
+
+	if (!req.body.sponsorPrivateKey) {
+		const error = new Error("Err: Sponsor Private Key Not Found");
+		next(error);
+	}
+
+	const res_tx = await sendSponsoredTx(
+		req.body.usdcxAmount,
+		req.body.recvAddress,
+		req.body.senderAddress,
+		req.body.senderPrivateKey,
+		req.body.sponsorPrivateKey,
+	);
+
+	console.log("RETURNED DATA:",res_tx)
+
+	return res.send(res_tx);
 });
 
 app.use(error);

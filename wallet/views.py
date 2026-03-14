@@ -27,6 +27,7 @@ class BotWalletView(APIView):
 
     def post(self, request, *args, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        print(request.data)
         res=parse_whatsapp_dict(request.data)
         if res is None:
             return HttpResponse("Empty data packet",status=403)

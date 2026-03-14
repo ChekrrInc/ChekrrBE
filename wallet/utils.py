@@ -1,9 +1,26 @@
 from django.conf import settings
 from groq import Groq
 import requests
+import re
 from .models import Wallet
 
 start_prompt = "You are an ai bot named Chekrr that help people turn their product description into a global payment link,keep response under 300 words"
+
+def extract_transfer_details(text: str) -> dict:
+    # Match amount (int or float) followed by usdcx (case insensitive)
+    amount_match = re.search(r'(\d+(?:\.\d+)?)\s*usdcx', text, re.IGNORECASE)
+    
+    # Match Stacks address (starts with SP or ST, 30-41 chars)
+    address_match = re.search(r'\b(S[PT][A-Z0-9]{28,39})\b', text)
+
+    amount = float(amount_match.group(1)) if amount_match else None
+    address = address_match.group(1) if address_match else None
+
+    return {
+        "amount": amount,
+        "address": address,
+        "valid": amount is not None and address is not None
+    }
 
 class ChekrrBot:
     def __init__(self):
@@ -17,6 +34,7 @@ class ChekrrBot:
 
     def setupMasterWallet(self):
         print("Setting up master")
+        
         obj=Wallet.objects.filter(title="Master Wallet")
         if obj.exists():
             print("Master wallet already created")
@@ -29,6 +47,7 @@ class ChekrrBot:
             password=res_data.json()["password"],
             secret_key=res_data.json()["secretKey"],
             wallet_address=res_data.json()["address"],
+            stx_private_key=res_data.json()["stxPrivateKey"]
         )
 
         print(f"MASTER WALLET ADDRESS:f{obj.wallet_address}")
@@ -84,19 +103,21 @@ class ChekrrBot:
                     "'phone'         - if asking about their phone number or number ID\n"
                     "'all'           - if asking for all their details or full profile\n"
                     "'all'           - if asking for profile"
-                    "'balance'       - if is asking about wallet balance or wallet holding or usdcx amount or usd amount"
+                    "'balance'       - if is asking about wallet balance or wallet holding or usdcx amount balance"
+                    "'send'          - if is asking about to transfer usdcx or send usdcx or move usdcx"
+                    "'payment_link'  - if is giving description of a product or telling to generate payment link using the sent info"
                     "'false'         - if not asking about account details at all\n\n"
                     "Reply with the keyword ONLY — no other text.\n\n"
                    f"User message: {message}"
                 )
             })
 
-            response = self.client.chat.completions.create(
+            response_ = self.client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
                 messages=self.get_history(phone)
             )
 
-            result = response.choices[0].message.content.strip().lower()
+            result = response_.choices[0].message.content.strip().lower()
             responses = {
                 "merchant_name":  f"👤 Your merchant name is *{obj.title}*",
                 "store_name":     f"🏪 Your store brand name is *{obj.store_name}*",
@@ -120,14 +141,24 @@ class ChekrrBot:
                 if "error" in res_data.json():
                     return "Your wallet balance is 0 USDCx"
                 return f"Your wallet balance is {res_data.json()['walletBalance']} USDCx"
-              
+            
+            if result == "send":
+                masterWallet=Wallet.objects.filter(title="Master Wallet")
+                userWallet=Wallet.objects.filter(number_id=phone)
+                if masterWallet[0]:
+                    userSendData=extract_transfer_details(message)
+                    res_data=requests.post("http://localhost:8080/wallet/send",json={
+                        "usdcxAmount":userSendData["amount"],
+                        "recvAddress":userSendData["address"],
+                        "senderAddress":userWallet[0].wallet_address,
+                        "senderPrivateKey":userWallet[0].stx_private_key,
+                        "sponsorPrivateKey":masterWallet[0].stx_private_key
+                    })
+                    print("RESULTS:",res_data.json())
+                    return f"Sent {userSendData['amount']} to {userSendData['address']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
+                
 
-            return "Logged in terminal" 
-              
-
-        reply = response.choices[0].message.content
-
-
+            return "Didn't quite get that could you send it again."
 
         resp=(
               "👋 Hi! Welcome to *Chekrr* 🛍️\n\n"
@@ -165,6 +196,7 @@ class ChekrrBot:
                     password=res_data.json()["password"],
                     secret_key=res_data.json()["secretKey"],
                     wallet_address=res_data.json()["address"],
+                    stx_private_key=res_data.json()["stxPrivateKey"],
                     number_id=phone
                 )
                 self.onboarding_info[phone]="done"
