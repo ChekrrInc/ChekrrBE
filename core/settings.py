@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+import stripe
 
 load_dotenv()
 
@@ -43,10 +44,13 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'wallet',
-    'product'
+    'product',
+    'corsheaders',
+    'payment'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',   
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -55,6 +59,11 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+CORS_ALLOWED_ORIGINS = [
+	"http://localhost:5173"
+]
+
 
 ROOT_URLCONF = 'core.urls'
 
@@ -89,6 +98,7 @@ DATABASES = {
 WHATSAPP_BUSINESS_ACCESS_TOKEN=os.getenv("WHATSAPP_BUSINESS_ACCESS_TOKEN")
 FACEBOOK_GRAPH_API=os.getenv("FACEBOOK_GRAPH_API")
 GROQ_API_KEY=os.getenv("GROQ_API_KEY")
+stripe.api_key=os.getenv("STRIPE_SECRET_KEY")
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
