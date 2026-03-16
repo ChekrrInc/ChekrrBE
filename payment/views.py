@@ -30,6 +30,8 @@ def reply_whatsapp_message(msg:str,to:str):
 
 
 # Create your views here.
+
+processed_ids = set()
 class StripeHandlerView(APIView):
     
     def get(self,request,*args,**kwargs):
@@ -38,18 +40,18 @@ class StripeHandlerView(APIView):
     def post(self,request,*args,**kwargs):
         try:
             data = request.data
-
+            print(data)
             amount = data.get('amount')
             wallet_obj=Wallet.objects.filter(title=data["product_data"]["owner_name"])
+            prod_obj=Product.objects.get(product_hash=data['product_data']['product_hash'])
+
             
             if data["type"] == "PAID":
-                msg=f"Lawrence paid {amount} USDCx for {data['product_data']['quantity']} of {data['product_data']['title']}"
-                
-                prod_obj=Product.objects.get(product_hash=data['product_data']['product_hash'])
-                
+                msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {amount} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}"
+               
+                processed_ids.add(data['product_data']['product_hash'])
                 if prod_obj.is_paid:
-                    return Response({"Info":"Merchant Notified of Payment"})
-
+                     return Response({"Info":"Merchant Notified of Payment"})
                 reply_whatsapp_message(msg=msg,to=wallet_obj[0].number_id)
                 prod_obj.is_paid=True
                 prod_obj.save()
@@ -72,7 +74,10 @@ class StripeHandlerView(APIView):
                 ui_mode="embedded",  # 👈 this is the keyreturn_url
                 return_url=f"http://localhost:5173/{data['product_data']['product_hash']}/checkout?session_id={wallet_obj[0].wallet_address}",
             )# in cents, e.g. 1000 = $10.00
-
+            print(data,"RECV DATA")
+            prod_obj.purchase_by_first_name=data["firstName"]
+            prod_obj.purchase_by_last_name=data["lastName"]
+            prod_obj.save()
             return Response({'clientSecret': session.client_secret})
 
         except stripe.error.StripeError as e:

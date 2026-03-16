@@ -117,7 +117,8 @@ class WhatsappMultiMediaMessageHandler:
                 "name":    contact["profile"]["name"],
                 "phone":   contact["wa_id"],
                 "type":    message["type"],
-                "id":      message["id"]
+                "id":      message["id"],
+                "content_id":hashlib.sha256(f"{caption} - has image".encode()).hexdigest()
              }
 
         if message["type"] == "text":
@@ -126,7 +127,9 @@ class WhatsappMultiMediaMessageHandler:
                 "phone":   contact["wa_id"],
                 "message": message["text"]["body"],
                 "type":    message["type"],
-                "id":      message["id"]
+                "id":      message["id"],
+                "content_id": hashlib.sha256(message["text"]["body"].encode()).hexdigest()
+
             }
 
 
@@ -135,6 +138,7 @@ class WhatsappMultiMediaMessageHandler:
               f"https://graph.facebook.com/v18.0/{media_id}",
         headers={"Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}"}
     )
+        print(response.json())
         return response.json()["url"]
     
     def _download_media(self,media_url: str) -> bytes:
@@ -315,6 +319,9 @@ class ChekrrBot:
                     user_details=Wallet.objects.filter(number_id=phone)
                     product_hash=hashlib.sha256(product_details["description"].encode()).hexdigest()
 
+                    if Product.objects.filter(product_hash=product_hash).exists():
+                        return "Product with similar description exists please change description a bit to prevent payment conflict"
+
                     if user_details[0]:
                         print(product_details)
                         prod_obj=Product.objects.create(
@@ -328,7 +335,7 @@ class ChekrrBot:
                             is_paid=False,
                             product_hash=product_hash
                         )
-                        return f"Stacks Payment Link Generated Below:\n\nhttp://localhost:5173/{product_hash}/checkout"
+                        return f"Stacks Payment Link Generated Below:\n\nhttp://localhost:5173/{product_hash}/checkout\n\nNOTE:Payment links are fingerprinted based off uniqueness of description"
                     return "Got it"
                 
                 return reply

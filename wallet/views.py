@@ -11,6 +11,7 @@ import requests
 
 
 chekrrbot=ChekrrBot()
+processed_ids = set()
 
 class BotWalletView(APIView):
 
@@ -27,10 +28,13 @@ class BotWalletView(APIView):
 
     def post(self, request, *args, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(request.data)
         res=parse_whatsapp_dict(request.data)
+
+        print(res,request.data)
+
         if res is None:
-            return HttpResponse("Empty data packet",status=403)
+            return HttpResponse(status=403)
+
         if "imageBase64Format" in res:
            response=chekrrbot.reply(phone=res["phone"],message=res["message"],id=res["id"],img_url=res["imageBase64Format"])
            reply_whatsapp_message(to=res['phone'],msg=response)
