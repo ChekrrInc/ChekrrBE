@@ -6,6 +6,7 @@ import base64
 import hashlib
 from .models import Wallet
 from product.models import Product
+from twilio.rest import Client
 
 start_prompt = "You are an ai bot named Chekrr that help people turn their product description into a global payment link,keep response under 300 words"
 
@@ -91,6 +92,13 @@ def extract_product_details(text: str) -> dict:
             result[field] = None
 
     return result
+
+def fetch_twilio_image(image_url: str) -> str:
+    response = requests.get(
+        image_url,
+        auth=(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)  # required for Twilio URLs
+    )
+    return base64.b64encode(response.content).decode("utf-8")
 
 class WhatsappMultiMediaMessageHandler:
     def __init__(self,whatsapp_message_packet):
@@ -196,6 +204,7 @@ class ChekrrBot:
         return self.sessions[phone]
  
     def reply(self, phone: str, message: str,id:str,img_url:str) -> str:
+        """
         headers = {
              "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
              "Content-Type": "application/json"
@@ -209,10 +218,13 @@ class ChekrrBot:
                 "type": "text"
             }
         }
-
+    
         response = requests.post(settings.FACEBOOK_GRAPH_API, headers=headers, json=payload)
-  
 
+        """
+
+        phone=phone.replace("+","")
+       
         history = self.get_history(phone)
 
         # add user message to history
@@ -277,6 +289,11 @@ class ChekrrBot:
                 userWallet=Wallet.objects.filter(number_id=phone)
                 if masterWallet[0]:
                     userSendData=extract_transfer_details(message)
+
+                    if userSendData["address"] is None:
+                        return "Please use a valid stacks wallet address"
+
+
                     res_data=requests.post("http://localhost:8080/wallet/send",json={
                         "usdcxAmount":userSendData["amount"],
                         "recvAddress":userSendData["address"],
@@ -284,7 +301,7 @@ class ChekrrBot:
                         "senderPrivateKey":userWallet[0].stx_private_key,
                         "sponsorPrivateKey":masterWallet[0].stx_private_key
                     })
-                    return f"Sent {userSendData['amount']} to {userSendData['address']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
+                    return f"Sent {userSendData['amount']} USDCx to {userSendData['address']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
                 return f"An Issue Occurred don't worry it is not you it is us"
 
             if result == "payment_link":
@@ -407,7 +424,46 @@ def parse_whatsapp_dict(payload: dict) -> dict:
     return WhatsappMultiMediaMessageHandler(payload).parse()
 
 
+def parse_twilio_dict(data):
+    try:
+        msg = data.get("Body", "")
+        phone = data.get("From", "").replace("whatsapp:", "")
+        msg_id = data.get("MessageSid")
+
+        if not phone or not msg_id:
+            return None
+
+        result = {
+            "message": msg,
+            "phone": phone,
+            "id": msg_id,
+ "content_id":hashlib.sha256(f"{msg}".encode()).hexdigest()
+
+        }
+
+        num_media = int(data.get("NumMedia", 0))
+        if num_media > 0:
+            result["imageUrl"] = data.get("MediaUrl0")
+            result["message"]= f"{msg} - has image"
+            result["content_id"]=hashlib.sha256(f"{msg} - has image".encode()).hexdigest()
+
+
+        return result
+
+    except Exception as e:
+        print(f"parse error: {e}")
+        return None
+
 def reply_whatsapp_message(msg:str,to:str):
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    message = client.messages.create(
+        from_=f"whatsapp:{settings.TWILIO_SANDBOX_NUMBER}",
+        body=msg,
+        to=f"whatsapp:{to}"
+    )
+    return message.sid
+
+    """
     headers = {
        "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
         "Content-Type": "application/json"
@@ -424,10 +480,5 @@ def reply_whatsapp_message(msg:str,to:str):
 
     response = requests.post(settings.FACEBOOK_GRAPH_API, headers=headers, json=payload)
     return response.json()
-
-
-def handle_chat_reply(msg:str)->str:
-
-    return 
-
+"""
 

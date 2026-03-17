@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.conf import settings
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from .utils import ChekrrBot,parse_whatsapp_dict,reply_whatsapp_message
+from .utils import ChekrrBot,parse_twilio_dict,reply_whatsapp_message,fetch_twilio_image
 
 import requests
 
@@ -28,15 +28,15 @@ class BotWalletView(APIView):
 
     def post(self, request, *args, **kwargs):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        res=parse_whatsapp_dict(request.data)
+        res=parse_twilio_dict(request.data)
 
-        print(res,request.data)
+        print(res)
 
         if res is None:
             return HttpResponse(status=403)
 
-        if "imageBase64Format" in res:
-           response=chekrrbot.reply(phone=res["phone"],message=res["message"],id=res["id"],img_url=res["imageBase64Format"])
+        if "imageUrl" in res:
+           response=chekrrbot.reply(phone=res["phone"],message=res["message"],id=res["id"],img_url=fetch_twilio_image(res["imageUrl"]))
            reply_whatsapp_message(to=res['phone'],msg=response)
         else:
            response=chekrrbot.reply(phone=res["phone"],message=res["message"],id=res["id"],img_url='')

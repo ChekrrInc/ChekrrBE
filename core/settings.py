@@ -98,7 +98,13 @@ DATABASES = {
 WHATSAPP_BUSINESS_ACCESS_TOKEN=os.getenv("WHATSAPP_BUSINESS_ACCESS_TOKEN")
 FACEBOOK_GRAPH_API=os.getenv("FACEBOOK_GRAPH_API")
 GROQ_API_KEY=os.getenv("GROQ_API_KEY")
+
+TWILIO_ACCOUNT_SID=os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN=os.getenv("TWILIO_AUTH_TOKEN")
+TWILIO_SANDBOX_NUMBER=os.getenv("TWILIO_SANDBOX_NUMBER")
+
 stripe.api_key=os.getenv("STRIPE_SECRET_KEY")
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators

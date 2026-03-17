@@ -15,7 +15,8 @@ import {
 	uintCV,
 	standardPrincipalCV,
 	noneCV,
-	Pc
+	Pc,
+	privateKeyToAddress
 } from "@stacks/transactions";
 
 import logger from "./middleware/logger";
@@ -108,6 +109,42 @@ const sendSponsoredTx = async (
 	return result;
 };
 
+const sendUSDCx = async (
+    senderPrivateKey: string,
+    recipientAddress: string,
+    amount: number // in micro units (6 decimals, so 1 USDCx = 1_000_000)
+) => {
+    const senderAddress = privateKeyToAddress(senderPrivateKey, STACKS_TESTNET);
+
+    const txOptions = {
+        contractAddress: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+        contractName: "usdcx",
+        functionName: "transfer",
+        functionArgs: [
+            uintCV(amount * 1_000_000),
+            standardPrincipalCV(senderAddress),
+            standardPrincipalCV(recipientAddress),
+            noneCV(), // memo
+        ],
+        senderKey: senderPrivateKey,
+        network: STACKS_TESTNET,
+        anchorMode: AnchorMode.Any,
+        postConditionMode: PostConditionMode.Deny,
+        postConditions: [
+            Pc.principal(senderAddress)
+                .willSendEq(amount * 1_000_000)
+   .ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
+	
+                        ],
+    };
+
+    const tx = await makeContractCall(txOptions);
+    const result = await broadcastTransaction({ transaction: tx, network: STACKS_TESTNET });
+
+    console.log("TX Result:", result);
+    return result;
+};
+
 app.use(logger);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -150,7 +187,7 @@ app.post("/wallet/restore", async (req: Request, res: Response, next: any) => {
 app.post("/wallet/status", async (req: Request, res: Response, next: any) => {
 	if (!req.body?.walletAddress) {
 		const error = new Error("Err: Target Wallet Address Not Found");
-		next(error);
+		return next(error);
 	}
 	const walletBalanceData = await getUSDCxBalance(req.body.walletAddress);
 	res.send(walletBalanceData);
@@ -164,22 +201,22 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 
 	if (!req.body?.usdcxAmount) {
 		const error = new Error("Err: USDCx amount not specified");
-		next(error);
+		return next(error);
 	}
 
 	if (!req.body.senderAddress) {
 		const error = new Error("Err: Sponsor Private Key Not Found");
-		next(error);
+		return next(error);
 	}
 
 	if (!req.body.senderPrivateKey) {
 		const error = new Error("Err: Sender Private Key Not Found");
-		next(error);
+		return next(error);
 	}
 
 	if (!req.body.sponsorPrivateKey) {
 		const error = new Error("Err: Sponsor Private Key Not Found");
-		next(error);
+		return next(error);
 	}
 
 	const res_tx = await sendSponsoredTx(
@@ -193,6 +230,33 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 	console.log("RETURNED DATA:",res_tx)
 
 	return res.send(res_tx);
+});
+
+app.post("/wallet/transfer",async (req:Request,res:Response,next:any)=>{
+
+	if(!req.body?.senderPrivateKey){
+		const error = new Error("Err: Sender Private Key Not Found");
+		 return next(error);
+	}
+
+	if(!req.body?.recipientAddress){
+		const error = new Error("Err: Recipient Address Not Found");
+		return next(error);
+	}
+
+		if(!req.body?.usdcxAmount){
+		const error = new Error("Err: USDCx Amount Not Found");
+		return next(error);
+		}
+
+			const transfer_tx= await sendUSDCx(
+			req.body?.senderPrivateKey,
+			req.body?.recipientAddress,
+			req.body?.usdcxAmount
+		)
+
+		return res.send(transfer_tx)
+
 });
 
 app.use(error);

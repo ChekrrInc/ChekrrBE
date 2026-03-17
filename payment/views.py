@@ -2,31 +2,12 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from wallet.models import Wallet
+from wallet.utils import reply_whatsapp_message
 from product.models import Product
-
 from django.conf import settings
 import requests
 import stripe
 
-
-
-def reply_whatsapp_message(msg:str,to:str):
-    headers = {
-       "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "messaging_product": "whatsapp",
-        "to": to,
-        "type": "text",
-        "text": {
-            "body": f"{msg}",
-        }
-    }
-
-    response = requests.post(settings.FACEBOOK_GRAPH_API, headers=headers, json=payload)
-    return response.json()
 
 
 # Create your views here.
@@ -43,11 +24,19 @@ class StripeHandlerView(APIView):
             print(data)
             amount = data.get('amount')
             wallet_obj=Wallet.objects.filter(title=data["product_data"]["owner_name"])
-            prod_obj=Product.objects.get(product_hash=data['product_data']['product_hash'])
+            masterWallet=Wallet.objects.filter(title="Master Wallet")
 
-            
+            prod_obj=Product.objects.get(product_hash=data['product_data']['product_hash'])
+ 
             if data["type"] == "PAID":
-                msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {amount} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}"
+                res_data=requests.post("http://localhost:8080/wallet/transfer",json={
+                        "usdcxAmount":float(amount),
+                        "recipientAddress":wallet_obj[0].wallet_address,
+                        "senderPrivateKey":masterWallet[0].stx_private_key
+                })
+
+                print(res_data.json())
+                msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {amount} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
                
                 processed_ids.add(data['product_data']['product_hash'])
                 if prod_obj.is_paid:
