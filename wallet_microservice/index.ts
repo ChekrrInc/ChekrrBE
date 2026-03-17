@@ -5,7 +5,7 @@ import crypto from "crypto";
 
 import { generateWallet, generateSecretKey } from "@stacks/wallet-sdk";
 import { getAddressFromPrivateKey } from "@stacks/transactions";
-import { STACKS_TESTNET, STACKS_MAINNET } from "@stacks/network";
+import { STACKS_TESTNET } from "@stacks/network";
 import {
 	makeContractCall,
 	AnchorMode,
@@ -16,7 +16,7 @@ import {
 	standardPrincipalCV,
 	noneCV,
 	Pc,
-	privateKeyToAddress
+	privateKeyToAddress,
 } from "@stacks/transactions";
 
 import logger from "./middleware/logger";
@@ -89,8 +89,8 @@ const sendSponsoredTx = async (
 		postConditionMode: PostConditionMode.Deny,
 		postConditions: [
 			Pc.principal(senderAddress)
-    .willSendEq(usdcxAmount * 1_000_000)
-    .ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
+				.willSendEq(usdcxAmount * 1_000_000)
+				.ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
 		],
 	});
 
@@ -110,39 +110,41 @@ const sendSponsoredTx = async (
 };
 
 const sendUSDCx = async (
-    senderPrivateKey: string,
-    recipientAddress: string,
-    amount: number // in micro units (6 decimals, so 1 USDCx = 1_000_000)
+	senderPrivateKey: string,
+	recipientAddress: string,
+	amount: number, // in micro units (6 decimals, so 1 USDCx = 1_000_000)
 ) => {
-    const senderAddress = privateKeyToAddress(senderPrivateKey, STACKS_TESTNET);
+	const senderAddress = privateKeyToAddress(senderPrivateKey, STACKS_TESTNET);
 
-    const txOptions = {
-        contractAddress: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
-        contractName: "usdcx",
-        functionName: "transfer",
-        functionArgs: [
-            uintCV(amount * 1_000_000),
-            standardPrincipalCV(senderAddress),
-            standardPrincipalCV(recipientAddress),
-            noneCV(), // memo
-        ],
-        senderKey: senderPrivateKey,
-        network: STACKS_TESTNET,
-        anchorMode: AnchorMode.Any,
-        postConditionMode: PostConditionMode.Deny,
-        postConditions: [
-            Pc.principal(senderAddress)
-                .willSendEq(amount * 1_000_000)
-   .ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
-	
-                        ],
-    };
+	const txOptions = {
+		contractAddress: "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM",
+		contractName: "usdcx",
+		functionName: "transfer",
+		functionArgs: [
+			uintCV(amount * 1_000_000),
+			standardPrincipalCV(senderAddress),
+			standardPrincipalCV(recipientAddress),
+			noneCV(), // memo
+		],
+		senderKey: senderPrivateKey,
+		network: STACKS_TESTNET,
+		anchorMode: AnchorMode.Any,
+		postConditionMode: PostConditionMode.Deny,
+		postConditions: [
+			Pc.principal(senderAddress)
+				.willSendEq(amount * 1_000_000)
+				.ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.usdcx", "usdcx-token"),
+		],
+	};
 
-    const tx = await makeContractCall(txOptions);
-    const result = await broadcastTransaction({ transaction: tx, network: STACKS_TESTNET });
+	const tx = await makeContractCall(txOptions);
+	const result = await broadcastTransaction({
+		transaction: tx,
+		network: STACKS_TESTNET,
+	});
 
-    console.log("TX Result:", result);
-    return result;
+	console.log("TX Result:", result);
+	return result;
 };
 
 app.use(logger);
@@ -227,36 +229,34 @@ app.post("/wallet/send", async (req: Request, res: Response, next: any) => {
 		req.body.sponsorPrivateKey,
 	);
 
-	console.log("RETURNED DATA:",res_tx)
+	console.log("RETURNED DATA:", res_tx);
 
 	return res.send(res_tx);
 });
 
-app.post("/wallet/transfer",async (req:Request,res:Response,next:any)=>{
-
-	if(!req.body?.senderPrivateKey){
+app.post("/wallet/transfer", async (req: Request, res: Response, next: any) => {
+	if (!req.body?.senderPrivateKey) {
 		const error = new Error("Err: Sender Private Key Not Found");
-		 return next(error);
+		return next(error);
 	}
 
-	if(!req.body?.recipientAddress){
+	if (!req.body?.recipientAddress) {
 		const error = new Error("Err: Recipient Address Not Found");
 		return next(error);
 	}
 
-		if(!req.body?.usdcxAmount){
+	if (!req.body?.usdcxAmount) {
 		const error = new Error("Err: USDCx Amount Not Found");
 		return next(error);
-		}
+	}
 
-			const transfer_tx= await sendUSDCx(
-			req.body?.senderPrivateKey,
-			req.body?.recipientAddress,
-			req.body?.usdcxAmount
-		)
+	const transfer_tx = await sendUSDCx(
+		req.body?.senderPrivateKey,
+		req.body?.recipientAddress,
+		req.body?.usdcxAmount,
+	);
 
-		return res.send(transfer_tx)
-
+	return res.send(transfer_tx);
 });
 
 app.use(error);
