@@ -107,8 +107,14 @@ class OnChainPaymentView(APIView):
             })
 
             print(res_data.json())
-            msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {amount*prod_obj.quantity} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
-            reply_whatsapp_message(msg=msg,to=wallet_obj[0].number_id)
+
+            if data["payment_method"]=="sBTC":
+                 msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {data['sBTCAmount']} sBTC ~ {amount*prod_obj.quantity} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
+                 reply_whatsapp_message(msg=msg,to=wallet_obj[0].number_id)
+            else:
+                 msg=f"{prod_obj.purchase_by_first_name} {prod_obj.purchase_by_last_name} paid {amount*prod_obj.quantity} USDCx for {data['product_data']['quantity']} {data['product_data']['title']}\n\nTransaction Hash:\nhttps://explorer.hiro.so/txid/{res_data.json()['txid']}?chain=testnet"
+                 reply_whatsapp_message(msg=msg,to=wallet_obj[0].number_id)
+      
  
             processed_ids.add(data['product_data']['product_hash'])
             if prod_obj.is_paid:

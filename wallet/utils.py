@@ -246,9 +246,10 @@ class ChekrrBot:
                     "'all'           - if asking for all their details or full profile\n"
                     "'all'           - if asking for profile"
                     "'balance'       - if is asking about wallet balance or wallet holding or usdcx amount balance"
-                    "'send'          - if is asking about to transfer usdcx or send usdcx or move usdcx"
+                    "'send'          - if is asking about to transfer usdcx or send usdcx or move usdcx or ussdcx"
                     "'payment_link'  - if is giving description of a product or 'has image'"
                     "'false'         - if not asking about account details at all\n\n"
+                    "'bridge'        - if is asking about bridging usdcx from ethereum to stacks or want to bridge token"
                     "Reply with the keyword ONLY — no other text.\n\n"
                    f"User message: {message}"
                 )
@@ -356,6 +357,8 @@ class ChekrrBot:
                     return "Got it"
                 
                 return reply
+            if result == "bridge":
+                return "Reply with the amount of ethereum usdc to bridge to usdcx on stacks\n\ne.g *'bridge 25 usdc from ethereum to stacks'*\n*ONLY USDC ON ETHEREUM IS CURRENTLY SUPPORTED*"
             return "Didn't quite get that could you send it again."
 
         resp=(
@@ -455,13 +458,16 @@ def parse_twilio_dict(data):
         return None
 
 def reply_whatsapp_message(msg:str,to:str):
-    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-    message = client.messages.create(
-        from_=f"whatsapp:{settings.TWILIO_SANDBOX_NUMBER}",
-        body=msg,
-        to=f"whatsapp:{to}"
+    try:
+       client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+       message = client.messages.create(
+            from_=f"whatsapp:{settings.TWILIO_SANDBOX_NUMBER}",
+            body=msg,
+            to=f"whatsapp:{to}"
     )
-    return message.sid
+       return message.sid
+    except e:
+        print("ERR:Error occured")
 
     """
     headers = {
