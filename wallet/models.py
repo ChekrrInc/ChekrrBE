@@ -11,5 +11,11 @@ class Wallet(models.Model):
     number_id=models.CharField(max_length=255)
     stx_private_key=models.CharField(max_length=255)
 
+class BridgeIntent(models.Model):
+    bridge_usdc_amount=models.CharField(max_length=255)
+    target_stacks_address=models.CharField(max_length=255)
+    is_executed=models.BooleanField()
+    bridge_hash=models.CharField(max_length=255)
+
 
 

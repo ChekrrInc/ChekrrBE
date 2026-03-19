@@ -4,7 +4,7 @@ import requests
 import re
 import base64
 import hashlib
-from .models import Wallet
+from .models import Wallet,BridgeIntent
 from product.models import Product
 from twilio.rest import Client
 
@@ -55,6 +55,43 @@ def extract_product_details_ai(message: str) -> dict:
             "price": None,
             "quantity": None,
         }
+
+
+def extract_usdc_bridge_amount(message: str) -> dict:
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{
+            "role": "system",
+            "content": (
+                "Extract product details from the user's message and return ONLY a valid JSON object "
+                "with exactly these fields:\n"
+                "- usdc: usdc amount(number)\n"
+                "- stacks_address: stacks blockchain wallet address"
+                "If a field is not mentioned, set it to null.\n"
+                "Return ONLY the JSON object — no explanation, no markdown, no backticks."
+            )
+        }, {
+            "role": "user",
+            "content": message
+        }],
+        temperature=0,
+    )
+
+    raw = response.choices[0].message.content.strip()
+
+    try:
+        data = json.loads(raw)
+        return {
+                "usdc": float(data["usdc"]) if data.get("usdc") else None,
+                "stacks_address": float(data["stacks_address"]) if data.get("stacks_address") else None,
+                   }
+
+    except json.JSONDecodeError:
+        return {
+            "usdc": None,
+             "stacks_address":None
+                    }
+
 
 def extract_transfer_details(text: str) -> dict:
     # Match amount (int or float) followed by usdcx (case insensitive)
@@ -357,7 +394,20 @@ class ChekrrBot:
                     return "Got it"
                 
                 return reply
+
             if result == "bridge":
+                wallet_obj=Wallet.objects.filter(number_id=phone)[0]
+                bridge_info=extract_usdc_bridge_amount(message)
+                bridge_hash=hashlib.sha256(message.encode()).hexdigest()
+
+                if "usdc" in bridge_info:
+                    BridgeIntent.objects.create(
+                        bridge_usdc_amount=bridge_info["usdc"],
+                        target_stacks_address=wallet_obj.wallet_address,
+                        is_executed=False,
+                        bridge_hash=bridge_hash
+                    )
+                    return f"Please click the link to connect your ethereum wallet to bridge your usdc\n\nEth USDC -> Stacks USDCx Bridge link:\n\nhttp://localhost:5173/{bridge_hash}/bridge"
                 return "Reply with the amount of ethereum usdc to bridge to usdcx on stacks\n\ne.g *'bridge 25 usdc from ethereum to stacks'*\n*ONLY USDC ON ETHEREUM IS CURRENTLY SUPPORTED*"
             return "Didn't quite get that could you send it again."
 
