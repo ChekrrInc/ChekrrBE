@@ -22,11 +22,11 @@ Chekrr can do the following using the following prompts:
 *generating an eth usdc to stacks usdcx bridge link* 
 'bridge 10 usdc to usdcx on stacks'
 
+powered by xReserve USDC protocol
+
 When you initiate a bridge from Ethereum to Stacks, Chekrr's master wallet liquidity hub immediately releases the equivalent USDCx to your wallet on Stacks — no waiting. The xReserve bridge transaction settles in the background and automatically replenishes the liquidity hub once confirmed.
 You get your USDCx in seconds. The 15-minute bridge window is completely invisible to you.
 
-
-powered by xReserve USDC protocol
 
 *You can use the prompt to access various chekrr functionality*
 
