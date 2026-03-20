@@ -31,3 +31,14 @@ You get your USDCx in seconds. The 15-minute bridge window is completely invisib
 *You can use the prompt to access various chekrr functionality*
 
 
+Multi-Rail Checkout
+Chekrr's checkout page accepts payments three ways — buyers choose what works for them:
+
+USDCx — pay directly with USDCx on Stacks
+sBTC — pay with Bitcoin via Stacks
+Stripe — pay with any credit or debit card, no crypto wallet needed
+
+Merchants receive USDCx on Stacks regardless of how the buyer paid. No buyer ever needs a wallet, a seed phrase, or any knowledge of crypto.
+A merchant in Lagos shares a payment link. A buyer in London pays with a card. The merchant gets USDCx. That's it.
+
+
