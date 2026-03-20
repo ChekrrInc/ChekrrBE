@@ -287,6 +287,7 @@ class ChekrrBot:
                     "'payment_link'  - if is giving description of a product or 'has image'"
                     "'false'         - if not asking about account details at all\n\n"
                     "'bridge'        - if is asking about bridging usdcx from ethereum to stacks or want to bridge token"
+                    "'prompts'       - if user is asking what can chekrr do or what options are on chekrr or what can chekrr do"
                     "Reply with the keyword ONLY — no other text.\n\n"
                    f"User message: {message}"
                 )
@@ -315,6 +316,8 @@ class ChekrrBot:
             if result in responses:
                  return responses[result]
 
+            if result == "prompts":
+                return "Chekrr can do the following using the following prompts:\n\n*balance or my balance* - 'what is my balance or usdcx balance'\n\n*send*  - 'send 10 usdcx to [stacks wallet address]'\n\n*generating payment links - picture + title [title] description [description] price [price] quantity [quantity]*\n\n e.g 'picture + title basketball description this is a basketball price $5 quantity 1'\n\n*generating an eth usdc to stacks usdcx bridge link* \n'bridge 10 usdcx to usdcx on stacks'\n\n\n*You can use the prompt to access various chekrr functionality*"
             if result == "balance":
                 res_data=requests.post("http://localhost:8080/wallet/status",json={ "walletAddress": obj.wallet_address })
                 print(res_data.json())
@@ -390,7 +393,7 @@ class ChekrrBot:
                             is_paid=False,
                             product_hash=product_hash
                         )
-                        return f"Stacks Payment Link Generated Below:\n\nhttp://localhost:5173/{product_hash}/checkout\n\nNOTE:Payment links are fingerprinted based off uniqueness of description"
+                        return f"Stacks Payment Link Generated Below:\n\nhttps://chekrr.vercel.app/{product_hash}/checkout\n\nNOTE:Payment links are fingerprinted based off uniqueness of description"
                     return "Got it"
                 
                 return reply
@@ -407,7 +410,7 @@ class ChekrrBot:
                         is_executed=False,
                         bridge_hash=bridge_hash
                     )
-                    return f"Please click the link to connect your ethereum wallet to bridge your usdc\n\nEth USDC -> Stacks USDCx Bridge link:\n\nhttp://localhost:5173/{bridge_hash}/bridge"
+                    return f"Please click the link to connect your ethereum wallet to bridge your usdc\n\nEth USDC -> Stacks USDCx Bridge link:\n\nhttps://chekrr.vercel.app/{bridge_hash}/bridge"
                 return "Reply with the amount of ethereum usdc to bridge to usdcx on stacks\n\ne.g *'bridge 25 usdc from ethereum to stacks'*\n*ONLY USDC ON ETHEREUM IS CURRENTLY SUPPORTED*"
             return "Didn't quite get that could you send it again."
 
@@ -508,18 +511,19 @@ def parse_twilio_dict(data):
         return None
 
 def reply_whatsapp_message(msg:str,to:str):
-    try:
-       client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-       message = client.messages.create(
+    client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
+    message = client.messages.create(
             from_=f"whatsapp:{settings.TWILIO_SANDBOX_NUMBER}",
             body=msg,
             to=f"whatsapp:{to}"
     )
-       return message.sid
-    except e:
-        print("ERR:Error occured")
+    return message.sid
+
+    print("ERR:Error occured")
 
     """
+
+
     headers = {
        "Authorization": f"Bearer {settings.WHATSAPP_BUSINESS_ACCESS_TOKEN}",
         "Content-Type": "application/json"
