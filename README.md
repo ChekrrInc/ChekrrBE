@@ -44,6 +44,6 @@ A merchant in Lagos shares a payment link. A buyer in London pays with a card. T
 
 # Figma Walkthrough And Post Hackathon Path
 
-https://www.figma.com/design/oceiA3WSbHGKxLD7t5X3iL/Untitled?node-id=0-1&t=YiefEsipSfsuYIkB-1
+https://www.figma.com/design/oceiA3WSbHGKxLD7t5X3iL/Chekrr?node-id=0-1&p=f&t=YiefEsipSfsuYIkB-0
 
 
