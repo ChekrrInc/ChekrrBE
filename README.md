@@ -2,6 +2,9 @@
 
 https://wa.me/14155238886?text=join%20group-western
 
+# Figma Walkthrough and Post Hackathon Path
+
+https://www.figma.com/design/oceiA3WSbHGKxLD7t5X3iL/Chekrr?node-id=34-3&t=YiefEsipSfsuYIkB-0
 
 After your onboarding and generating your merchant profile you can send the bot
 
@@ -42,8 +45,6 @@ Stripe — pay with any credit or debit card, no crypto wallet needed
 Merchants receive USDCx on Stacks regardless of how the buyer paid. No buyer ever needs a wallet, a seed phrase, or any knowledge of crypto.
 A merchant in Lagos shares a payment link. A buyer in London pays with a card. The merchant gets USDCx. That's it.
 
-# Figma Walkthrough And Post Hackathon Path
 
-https://www.figma.com/design/oceiA3WSbHGKxLD7t5X3iL/Chekrr?node-id=0-1&p=f&t=YiefEsipSfsuYIkB-0
 
 
