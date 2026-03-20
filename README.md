@@ -3,7 +3,7 @@
 https://wa.me/14155238886?text=join%20group-western
 
 
-After your onboarding and generatinf your merchant profile you can send the bot
+After your onboarding and generating your merchant profile you can send the bot
 
 "what can you do" and get list of the it's functionalities
 
